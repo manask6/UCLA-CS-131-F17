@@ -1,0 +1,50 @@
+For the convert_grammar function, I realized that the only difference
+between a gram 1 and gram 2 style grammar is that the second element of the
+pair is a production function instead of a rules list. So, I just needed to
+write a sub-function that returns a function (find_RHS) that searches for a
+nonterminal in a rules list and returns all the associated right-hand values.
+The final grammar is: (gram1 start symbol, find_RHS with rules list parameter).
+
+
+
+The parse_prefix function I wrote in separate parts. First I knew roughly what
+the return value would look like based on the spec: a matcher function that
+takes the start_symbol, rules_list, alt_list (in this case the production
+function of the start symbol), the acceptor function, a derivation (empty list
+at first), and the fragment.
+
+Working backwards, I then needed to make the matcher function itself. My
+implementation starts by going through the grammar rules that match the start
+symbol. It uses a sub_matcher function (described below) to find all the
+fragment elements that match a given rule from rules_list. If sub_matcher
+returns None, we move to the next rule, and if it returns Some result, we
+return Some result. Since we need to iterate through each rule, I realized
+this function needed to be recursive.
+
+Now the hard part: the sub_matcher function. This function takes a test_rule
+(a single rule being tested), rules_list, acceptor, derivation, and fragment, 
+and returns (after some recursion) basically what the acceptor would return.
+First, our base case is the test_rule being an empty list. In this case, we
+simply return the acceptor function with the derivation and fragment as
+parameters. If that isn't the case, we check if the fragment itself is null
+and return None if so. If that isn't the case, then the fragment is of the
+form prefix::suffix, and now we figure out if the test_rule is for a terminal
+or nonterminal symbol.
+
+Now the harder part: If the test_rule has a terminal symbol as its left hand
+side, and if that symbol matches our currently identified prefix, then we
+recursively call sub_matcher with the same parameters, only the fragment is now
+the suffix of the fragment we were testing. Else we return None.
+
+If the test_rule is for a nonterminal symbol, things get kind of weird. In this
+case we call matcher (NOT sub_matcher) with the symbol as the start symbol, the
+same rules_list, the alt list for the nonterminal, the same derivation and
+fragment, and lastly the acceptor function is (sub_matcher with the rules_list,
+acceptor, and the right hand side of the test_rule as parameters).
+I'll be honest, I'm not sure why that last part is like that, but there were
+only a few options that made any remote sense, and after some guessing and
+checking I found that this works for all the test cases I threw at it.
+If there is a weakness in my code, it's probably for complex grammars with
+tons of nonterminals, but I cannot say for sure because I'm not confident
+in these two lines. Also I have a non-exhaustive matching somewhere, but I'm
+pretty sure fixing it is not within the scope of this assignment.
